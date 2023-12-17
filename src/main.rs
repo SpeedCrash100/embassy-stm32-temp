@@ -6,6 +6,7 @@ use core::future::pending;
 
 use core::arch::asm;
 use cortex_m_rt::entry;
+use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
 use embassy_executor::InterruptExecutor;
 use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::interrupt;
@@ -13,6 +14,8 @@ use embassy_stm32::interrupt::{InterruptExt, Priority};
 use embassy_stm32::Config;
 use {defmt_rtt as _, panic_probe as _}; // global logger
 
+mod i2c;
+mod temperature;
 mod work_indicator;
 
 static EXECUTOR_HIGH: InterruptExecutor = InterruptExecutor::new();
@@ -71,9 +74,12 @@ fn main() -> ! {
     let indicator_led = Output::new(p.PA5, Level::Low, Speed::VeryHigh);
     work_indicator::init_pin(indicator_led);
 
+    let i2c_bus = i2c::init(p.I2C1, p.PB8, p.PB9);
+
     interrupt::USART6.set_priority(Priority::P6);
     let spawner = EXECUTOR_HIGH.start(interrupt::USART6);
     spawner.spawn(high_priority()).unwrap();
+    spawner.must_spawn(temperature::get_temperature(I2cDevice::new(i2c_bus)));
 
     interrupt::USART2.set_priority(Priority::P7);
     let spawner = EXECUTOR_MEDIUM.start(interrupt::USART2);

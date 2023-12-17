@@ -26,6 +26,7 @@ embassy-stm32 = { version = "0.1.0", features = [
     "time-driver-tim2",
 ] }
 embassy-sync = { version = "0.5" }
+embassy-embedded-hal = { version = "*" }
 
 defmt = "0.3"
 defmt-rtt = "0.4.0"
@@ -33,6 +34,10 @@ panic-probe = { version = "0.3.1", features = ["print-defmt"] }
 
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
+embedded-hal = "0.2"
+embedded-hal-1 = { version = "=1.0.0-rc.2", package = "embedded-hal" }
+lm75 = "0.2.0"
+static_cell = "2.0.0"
 
 
 [patch.crates-io]
@@ -40,7 +45,7 @@ embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f3
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
-
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
 
 [profile.release]
 debug = 2
