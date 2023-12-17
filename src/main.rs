@@ -6,7 +6,6 @@ use core::future::pending;
 
 use core::arch::asm;
 use cortex_m_rt::entry;
-use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
 use embassy_executor::InterruptExecutor;
 use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::interrupt;
@@ -78,12 +77,11 @@ fn main() -> ! {
 
     interrupt::USART6.set_priority(Priority::P6);
     let spawner = EXECUTOR_HIGH.start(interrupt::USART6);
-    spawner.spawn(high_priority()).unwrap();
-    spawner.must_spawn(temperature::get_temperature(I2cDevice::new(i2c_bus)));
+    temperature::spawn_temperature_input(i2c_bus, &spawner);
 
     interrupt::USART2.set_priority(Priority::P7);
     let spawner = EXECUTOR_MEDIUM.start(interrupt::USART2);
-    spawner.spawn(med_priority()).unwrap();
+    let _ = temperature::spawn_process_temperature(&spawner);
 
     interrupt::I2C3_EV.set_priority(Priority::P8);
     let spawner = EXECUTOR_LOW.start(interrupt::I2C3_EV);
