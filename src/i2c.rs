@@ -30,7 +30,7 @@ fn create_i2c_protected(peri: I2C1, scl: PB8, sda: PB9) -> I2cProtected {
         Irqs,
         NoDma,
         NoDma,
-        Hertz(100_000),
+        Hertz(400_000),
         Default::default(),
     );
 

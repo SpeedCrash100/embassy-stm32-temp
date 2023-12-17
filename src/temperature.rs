@@ -5,8 +5,8 @@
 use crate::i2c;
 use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
 use embassy_executor::SendSpawner;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, pubsub::PubSubChannel};
 use embassy_time::{Duration, Timer};
 use lm75::Address;
 
@@ -21,9 +21,9 @@ const CHANNEL_SIZE: usize = 1;
 /// Temperature gotten from sensor goes here
 pub static TEMPERATURE_INPUT: Channel<CriticalSectionRawMutex, f32, CHANNEL_SIZE> = Channel::new();
 
-pub type OutputTemperatureChannel = Channel<CriticalSectionRawMutex, f32, CHANNEL_SIZE>;
+pub type OutputTemperatureChannel = PubSubChannel<CriticalSectionRawMutex, f32, 4, 4, 4>;
 /// Output channel for processed channel
-pub static TEMPERATURE_PROCESSED: OutputTemperatureChannel = Channel::new();
+static TEMPERATURE_PROCESSED: OutputTemperatureChannel = PubSubChannel::new();
 
 /// Spawn tasks for getting temperature
 pub fn spawn_temperature_input(i2c: &'static i2c::I2cProtected, spawner: &SendSpawner) {
@@ -73,6 +73,8 @@ pub async fn process_temperature() {
     let mut temperatures: [f32; PROCESS_TEMPERATURE_BUFFER_SIZE] =
         [0.0; PROCESS_TEMPERATURE_BUFFER_SIZE];
 
+    let publisher = TEMPERATURE_PROCESSED.publisher().unwrap();
+
     loop {
         let mut avg_temp = 0.0;
 
@@ -83,5 +85,6 @@ pub async fn process_temperature() {
         }
 
         defmt::debug!("Average temperature: {}", avg_temp);
+        publisher.publish_immediate(avg_temp);
     }
 }

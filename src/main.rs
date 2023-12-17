@@ -13,6 +13,7 @@ use embassy_stm32::interrupt::{InterruptExt, Priority};
 use embassy_stm32::Config;
 use {defmt_rtt as _, panic_probe as _}; // global logger
 
+mod display;
 mod i2c;
 mod temperature;
 mod work_indicator;
@@ -73,19 +74,20 @@ fn main() -> ! {
     let indicator_led = Output::new(p.PA5, Level::Low, Speed::VeryHigh);
     work_indicator::init_pin(indicator_led);
 
+    let _display_enable_pin = Output::new(p.PA8, Level::High, Speed::VeryHigh);
+
     let i2c_bus = i2c::init(p.I2C1, p.PB8, p.PB9);
 
     interrupt::USART6.set_priority(Priority::P6);
-    let spawner = EXECUTOR_HIGH.start(interrupt::USART6);
-    temperature::spawn_temperature_input(i2c_bus, &spawner);
-
+    let spawner_high = EXECUTOR_HIGH.start(interrupt::USART6);
     interrupt::USART2.set_priority(Priority::P7);
-    let spawner = EXECUTOR_MEDIUM.start(interrupt::USART2);
-    let _ = temperature::spawn_process_temperature(&spawner);
-
+    let spawner_med = EXECUTOR_MEDIUM.start(interrupt::USART2);
     interrupt::I2C3_EV.set_priority(Priority::P8);
-    let spawner = EXECUTOR_LOW.start(interrupt::I2C3_EV);
-    spawner.spawn(low_priority()).unwrap();
+    let spawner_low = EXECUTOR_LOW.start(interrupt::I2C3_EV);
+
+    temperature::spawn_temperature_input(i2c_bus, &spawner_high);
+    let temp_channel = temperature::spawn_process_temperature(&spawner_med);
+    display::spawn_display_tasks(temp_channel, i2c_bus, &spawner_low);
 
     loop {
         unsafe {
