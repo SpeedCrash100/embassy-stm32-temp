@@ -14,6 +14,7 @@ bench = false
 embassy-executor = { version = "0.4.0", features = [
     "arch-cortex-m",
     "executor-thread",
+    "executor-interrupt",
     "integrated-timers",
     "nightly",
     "defmt",
@@ -24,6 +25,7 @@ embassy-stm32 = { version = "0.1.0", features = [
     "stm32f411re",
     "time-driver-tim2",
 ] }
+embassy-sync = { version = "0.5" }
 
 defmt = "0.3"
 defmt-rtt = "0.4.0"
@@ -37,6 +39,7 @@ cortex-m-rt = "0.7"
 embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
 
 
 [profile.release]
