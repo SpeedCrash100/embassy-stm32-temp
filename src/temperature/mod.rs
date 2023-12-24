@@ -5,10 +5,12 @@
 use crate::i2c;
 use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
 use embassy_executor::SendSpawner;
-use embassy_sync::channel::Channel;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, pubsub::PubSubChannel};
 use embassy_time::{Duration, Timer};
 use lm75::Address;
+
+mod channel;
+use channel::Channel;
 
 /// How many measurements store to get average temperature
 const PROCESS_TEMPERATURE_BUFFER_SIZE: usize = 10;
@@ -16,10 +18,8 @@ const PROCESS_TEMPERATURE_BUFFER_SIZE: usize = 10;
 /// Interval between temperature measurements
 const GET_TEMP_INTERVAL_MS: u64 = 1000;
 
-/// Channel buffer size
-const CHANNEL_SIZE: usize = 1;
 /// Temperature gotten from sensor goes here
-pub static TEMPERATURE_INPUT: Channel<CriticalSectionRawMutex, f32, CHANNEL_SIZE> = Channel::new();
+pub static TEMPERATURE_INPUT: Channel = Channel::new();
 
 pub type OutputTemperatureChannel = PubSubChannel<CriticalSectionRawMutex, f32, 4, 4, 4>;
 /// Output channel for processed channel
