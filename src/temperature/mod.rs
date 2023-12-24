@@ -3,88 +3,47 @@
 //!
 
 use crate::i2c;
-use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
 use embassy_executor::SendSpawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, pubsub::PubSubChannel};
-use embassy_time::{Duration, Timer};
-use lm75::Address;
 
 mod channel;
-use channel::Channel;
+use channel::{Channel, ChannelSelect, TemperatureWithID};
 
-/// How many measurements store to get average temperature
-const PROCESS_TEMPERATURE_BUFFER_SIZE: usize = 10;
-
-/// Interval between temperature measurements
-const GET_TEMP_INTERVAL_MS: u64 = 1000;
-
-/// Temperature gotten from sensor goes here
-pub static TEMPERATURE_INPUT: Channel = Channel::new();
+mod source;
+use source::SourcesInitInfo;
 
 pub type OutputTemperatureChannel = PubSubChannel<CriticalSectionRawMutex, f32, 4, 4, 4>;
 /// Output channel for processed channel
 static TEMPERATURE_PROCESSED: OutputTemperatureChannel = PubSubChannel::new();
 
 /// Spawn tasks for getting temperature
-pub fn spawn_temperature_input(i2c: &'static i2c::I2cProtected, spawner: &SendSpawner) {
-    spawner.must_spawn(get_temperature_lm75b(I2cDevice::new(i2c)));
-    spawner.must_spawn(get_temperature_ds3231(I2cDevice::new(i2c)));
-}
+pub fn spawn_temperature_input(
+    i2c: &'static i2c::I2cProtected,
+    spawner_sensors: &SendSpawner,
+    spawner_process: &SendSpawner,
+) -> &'static OutputTemperatureChannel {
+    let info = SourcesInitInfo {
+        bus: i2c,
+        spawner: spawner_sensors,
+    };
 
-/// Spawn tasks for processing temperature, returns channel that can be used to get results
-pub fn spawn_process_temperature(spawner: &SendSpawner) -> &'static OutputTemperatureChannel {
-    spawner.must_spawn(process_temperature());
+    let channels = source::init(&info);
+    spawner_process.must_spawn(process_temperature(channels));
 
     &TEMPERATURE_PROCESSED
 }
 
 #[embassy_executor::task]
-pub async fn get_temperature_lm75b(i2c: i2c::I2cShared) {
-    let mut lm75b = lm75::Lm75::new(i2c, Address::from(0x48));
-    lm75b.enable().unwrap();
+async fn process_temperature(channels: &'static [Channel]) {
+    let mut avg_temp_by_source = [0.0_f32; source::MAX_SOURCES];
+    let producer = TEMPERATURE_PROCESSED.publisher().unwrap();
 
     loop {
-        if let Ok(temp) = lm75b.read_temperature() {
-            defmt::trace!("lm75b: temperature is {}", temp);
-            TEMPERATURE_INPUT.send(temp).await;
-        }
+        let select = ChannelSelect::new(channels);
+        let TemperatureWithID(id, temp) = select.await;
+        avg_temp_by_source[id] = temp;
 
-        Timer::after(Duration::from_millis(GET_TEMP_INTERVAL_MS)).await;
-    }
-}
-
-#[embassy_executor::task]
-pub async fn get_temperature_ds3231(i2c: i2c::I2cShared) {
-    let mut ds3231 = ds323x::Ds323x::new_ds3231(i2c);
-    ds3231.enable().unwrap();
-
-    loop {
-        if let Ok(temp) = ds3231.temperature() {
-            defmt::trace!("ds3131: temperature is {}", temp);
-            TEMPERATURE_INPUT.send(temp).await;
-        }
-
-        Timer::after(Duration::from_millis(GET_TEMP_INTERVAL_MS)).await;
-    }
-}
-
-#[embassy_executor::task]
-pub async fn process_temperature() {
-    let mut temperatures: [f32; PROCESS_TEMPERATURE_BUFFER_SIZE] =
-        [0.0; PROCESS_TEMPERATURE_BUFFER_SIZE];
-
-    let publisher = TEMPERATURE_PROCESSED.publisher().unwrap();
-
-    loop {
-        let mut avg_temp = 0.0;
-
-        for i in &mut temperatures {
-            let temp = TEMPERATURE_INPUT.receive().await;
-            *i = temp;
-            avg_temp += temp / (PROCESS_TEMPERATURE_BUFFER_SIZE as f32);
-        }
-
-        defmt::debug!("Average temperature: {}", avg_temp);
-        publisher.publish_immediate(avg_temp);
+        let avg_temp = avg_temp_by_source.iter().sum::<f32>() / avg_temp_by_source.len() as f32;
+        producer.publish_immediate(avg_temp);
     }
 }

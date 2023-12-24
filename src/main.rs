@@ -85,8 +85,7 @@ fn main() -> ! {
     interrupt::I2C3_EV.set_priority(Priority::P8);
     let spawner_low = EXECUTOR_LOW.start(interrupt::I2C3_EV);
 
-    temperature::spawn_temperature_input(i2c_bus, &spawner_high);
-    let temp_channel = temperature::spawn_process_temperature(&spawner_med);
+    let temp_channel = temperature::spawn_temperature_input(i2c_bus, &spawner_high, &spawner_med);
     display::spawn_display_tasks(temp_channel, i2c_bus, &spawner_low);
 
     loop {

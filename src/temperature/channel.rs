@@ -19,14 +19,20 @@ pub const CHANNEL_SIZE: usize = 1;
 pub type Channel = EmbassyChannel<CriticalSectionRawMutex, f32, CHANNEL_SIZE>;
 
 /// Holds a temperature with an ID of the channel
-pub struct TemperatureWithID(usize, f32);
+pub struct TemperatureWithID(pub usize, pub f32);
 
-/// Wrapper around heapless::Vec selects the first channel that receives value
-pub struct ChannelSelect<'vec, const SIZE: usize> {
-    channels: &'vec mut heapless::Vec<Channel, SIZE>,
+/// Wrapper around slice selects the first channel that receives value
+pub struct ChannelSelect<'vec> {
+    channels: &'vec [Channel],
 }
 
-impl<'vec, const SIZE: usize> Future for ChannelSelect<'vec, SIZE> {
+impl<'vec> ChannelSelect<'vec> {
+    pub fn new(channels: &'vec [Channel]) -> Self {
+        Self { channels }
+    }
+}
+
+impl<'vec> Future for ChannelSelect<'vec> {
     type Output = TemperatureWithID;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
