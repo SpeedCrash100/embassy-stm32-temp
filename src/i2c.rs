@@ -23,16 +23,7 @@ bind_interrupts!(struct Irqs {
 static I2C_HANDLE: StaticCell<I2cProtected> = StaticCell::new();
 
 fn create_i2c_protected(peri: I2C1, scl: PB8, sda: PB9) -> I2cProtected {
-    let i2c = I2c::new(
-        peri,
-        scl,
-        sda,
-        Irqs,
-        NoDma,
-        NoDma,
-        Hertz(400_000),
-        Default::default(),
-    );
+    let i2c = I2c::new_blocking(peri, scl, sda, Default::default());
 
     let i2c_refcell = RefCell::new(i2c);
 

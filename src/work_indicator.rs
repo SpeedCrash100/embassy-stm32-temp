@@ -3,28 +3,40 @@
 //! Enables when executers are doing work
 //!
 
-use core::cell::OnceCell;
+use core::convert::Infallible;
 
-use embassy_stm32::gpio::{Level, Output};
-use embassy_stm32::peripherals::PA5;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
+use defmt::error;
 
-pub type Indicator = Output<'static, PA5>;
+use embedded_hal::digital::{OutputPin, PinState};
 
-static WORK_INDICATOR: Mutex<CriticalSectionRawMutex, OnceCell<Indicator>> =
-    Mutex::new(OnceCell::new());
+struct Indicator {
+    pin: &'static mut (dyn OutputPin<Error = Infallible> + Send),
+}
 
-pub fn init_pin(pin: Indicator) {
-    WORK_INDICATOR.lock(move |cell| cell.set(pin)).ok();
+static mut WORK_INDICATOR: Option<Indicator> = Option::None;
+
+/// # Safety
+/// Can be used only before any usage of [set_working_enabled]
+pub unsafe fn init_pin(pin: &'static mut (dyn OutputPin<Error = Infallible> + Send)) {
+    // Safety:
+    unsafe {
+        WORK_INDICATOR = Some(Indicator { pin });
+    }
 }
 
 pub fn set_working_enabled(enabled: bool) {
-    let indicator = WORK_INDICATOR.lock(|c| c.get().unwrap() as *const Indicator as *mut Indicator);
+    // Safety: We don't care about race here, we want our indicators works as fast as possible
+    // It should be an problem even if interrupted, interrupts means indicator always enables, most GPIO peri sets
+    // output with one instruction
+    let work_ptr = &raw mut WORK_INDICATOR;
+    let work_ref = unsafe { &mut *work_ptr };
 
-    // THIS IS TOTALLY UNSAFE/
-    // But we don't care about the correctness of work indicator
-    // and do not rely on its values in programm
-    let mut_led = unsafe { &mut *indicator };
-    mut_led.set_level(if enabled { Level::High } else { Level::Low });
+    match work_ref {
+        Some(indicator) => {
+            indicator.pin.set_state(PinState::from(enabled)).ok();
+        }
+        None => {
+            error!("uninitialized activity indicator")
+        }
+    }
 }

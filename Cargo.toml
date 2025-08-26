@@ -11,22 +11,19 @@ test = false
 bench = false
 
 [dependencies]
-embassy-executor = { version = "0.4.0", features = [
+embassy-executor = { version = "0.8.0", features = [
     "arch-cortex-m",
     "executor-thread",
     "executor-interrupt",
-    "integrated-timers",
-    "nightly",
-    "defmt",
 ] }
-embassy-time = { version = "0.2.0", features = ["defmt"] }
-embassy-stm32 = { version = "0.1.0", features = [
+embassy-time = { version = "0.4.0", features = ["defmt"] }
+embassy-stm32 = { version = "0.3.0", features = [
     "defmt",
     "stm32f411re",
     "time-driver-tim2",
 ] }
-embassy-sync = { version = "0.5" }
-embassy-embedded-hal = { version = "*" }
+embassy-sync = { version = "0.7" }
+embassy-embedded-hal = { version = "0.4" }
 
 defmt = "0.3"
 defmt-rtt = "0.4.0"
@@ -34,8 +31,7 @@ panic-probe = { version = "0.3.1", features = ["print-defmt"] }
 
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
-embedded-hal = "0.2"
-embedded-hal-1 = { version = "=1.0.0-rc.2", package = "embedded-hal" }
+embedded-hal = "1"
 lm75 = "0.2.0"
 static_cell = "2.0.0"
 ds323x = "0.5.1"
@@ -46,12 +42,12 @@ num-traits = { version = "0.2.17", default-features = false }
 ufmt = "0.2.0"
 
 
-[patch.crates-io]
-embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
-embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "343be37f397ff82eb9d34161920449cc4b45c31a" }
+# [patch.crates-io]
+# embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "73717f9ae8ea1f13f029c4c2722610a7e54436cb" }
+# embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "73717f9ae8ea1f13f029c4c2722610a7e54436cb" }
+# embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "73717f9ae8ea1f13f029c4c2722610a7e54436cb" }
+# embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "73717f9ae8ea1f13f029c4c2722610a7e54436cb" }
+# embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "73717f9ae8ea1f13f029c4c2722610a7e54436cb" }
 
 [profile.release]
 debug = 2
