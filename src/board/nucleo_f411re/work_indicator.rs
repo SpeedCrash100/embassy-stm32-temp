@@ -17,7 +17,7 @@ static mut WORK_INDICATOR: Option<Indicator> = Option::None;
 
 /// # Safety
 /// Can be used only before any usage of [set_working_enabled]
-pub unsafe fn init_pin(pin: &'static mut (dyn OutputPin<Error = Infallible> + Send)) {
+pub(super) unsafe fn init_pin(pin: &'static mut (dyn OutputPin<Error = Infallible> + Send)) {
     // Safety:
     unsafe {
         WORK_INDICATOR = Some(Indicator { pin });

@@ -16,6 +16,7 @@ bench = false
 
 [dependencies]
 embassy-executor = { version = "0.8.0", features = [
+    "defmt",
     "arch-cortex-m",
     "executor-thread",
     "executor-interrupt",
