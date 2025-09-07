@@ -45,6 +45,24 @@ impl Runtime {
     pub fn must_spawn<S: Send>(&self, priority: u8, token: SpawnToken<S>) {
         defmt::unwrap!(self.spawn(priority, token));
     }
+
+    /// Gets lowest priority spawner
+    pub fn lowest(&self) -> Spawner {
+        self.low_spawner
+    }
+
+    /// Gets runner with medium priority
+    pub fn medium(&self) -> SendSpawner {
+        self.med_spawner
+    }
+
+    /// Gets runner with highest priority
+    ///
+    /// # Note
+    /// This does not mean its above all interrupts
+    pub fn highest(&self) -> SendSpawner {
+        self.high_spawner
+    }
 }
 
 macro_rules! mk_static {

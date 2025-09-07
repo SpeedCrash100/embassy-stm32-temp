@@ -50,9 +50,9 @@ fn entry() -> ! {
 
 #[embassy_executor::task]
 async fn main(p: bsp::Peripherals, runtime: bsp::Runtime) {
-    runtime.must_spawn(0, high_priority());
-    runtime.must_spawn(1, med_priority());
-    runtime.must_spawn(2, low_priority());
+    runtime.highest().must_spawn(high_priority());
+    runtime.medium().must_spawn(med_priority());
+    runtime.lowest().must_spawn(low_priority());
 
     defmt::warn!("exit of main");
 
