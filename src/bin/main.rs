@@ -13,10 +13,12 @@ use embassy_time::{Duration, Timer};
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _}; // global logger
 
+use embassy_stm32_temp::work_indicator;
+
 // mod display;
 // mod i2c;
 // mod temperature;
-mod work_indicator;
+// mod work_indicator;
 
 static EXECUTOR_HIGH: InterruptExecutor = InterruptExecutor::new();
 static EXECUTOR_MEDIUM: InterruptExecutor = InterruptExecutor::new();
