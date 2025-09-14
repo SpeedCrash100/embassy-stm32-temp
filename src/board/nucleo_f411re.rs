@@ -1,4 +1,5 @@
 mod executor;
+mod i2c;
 mod work_indicator;
 
 use embassy_executor::{InterruptExecutor, SendSpawner, SpawnToken, Spawner};
@@ -13,7 +14,16 @@ use static_cell::StaticCell;
 use executor::Executor;
 
 #[non_exhaustive]
-pub struct Peripherals {}
+pub struct Peripherals {
+    i2c1: &'static i2c::I2cProtected,
+}
+
+impl Peripherals {
+    pub fn i2c1(&self) -> i2c::I2cShared {
+        let i2c_ref = self.i2c1;
+        i2c::I2cShared::new(i2c_ref)
+    }
+}
 
 #[non_exhaustive]
 #[derive(Clone)]
@@ -81,7 +91,12 @@ fn init() -> Peripherals {
     // We are only one calling this, `p` can passed here once only so we only one setting pin
     unsafe { work_indicator::init_pin(static_activity_led) };
 
-    Peripherals {}
+    let i2c1 = p.I2C1;
+    let scl = p.PB8;
+    let sda = p.PB9;
+    let i2c1_ref = i2c::init_i2c1(i2c1, scl, sda);
+
+    Peripherals { i2c1: i2c1_ref }
 }
 
 pub fn entry<F, S>(main_function: F) -> !

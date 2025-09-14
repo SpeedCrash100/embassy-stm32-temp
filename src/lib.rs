@@ -1,3 +1,6 @@
 #![no_std]
 
-pub mod board;
+mod board;
+
+/// Currently only one supported board
+pub use board::nucleo_f411re as bsp;
