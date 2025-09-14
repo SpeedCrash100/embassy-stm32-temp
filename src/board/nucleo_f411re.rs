@@ -13,6 +13,9 @@ use static_cell::StaticCell;
 
 use executor::Executor;
 
+/// Handle used to shared i2c bus
+pub use i2c::I2cShared;
+
 #[non_exhaustive]
 pub struct Peripherals {
     i2c1: &'static i2c::I2cProtected,

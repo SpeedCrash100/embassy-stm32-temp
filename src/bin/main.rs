@@ -6,12 +6,26 @@ use cortex_m_rt::entry;
 use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _}; // global logger
 
-use embassy_stm32_temp::bsp;
+use embassy_stm32_temp::{bsp, drivers::sensors::temperature::TemperatureSensor};
 
 // mod display;
 // mod i2c;
 // mod temperature;
 // mod work_indicator;
+
+macro_rules! mk_static {
+    ($t:ty,$val:expr) => {{
+        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        #[deny(unused_attributes)]
+        let x = STATIC_CELL.uninit().write(($val));
+        x
+    }};
+}
+
+#[embassy_executor::task]
+async fn lm75_temp_task(runner: embassy_stm32_temp::drivers::sensors::lm75::Runner<'static>) {
+    runner.run().await;
+}
 
 #[entry]
 fn entry() -> ! {
@@ -20,27 +34,23 @@ fn entry() -> ! {
 }
 
 #[embassy_executor::task]
-async fn main(p: bsp::Peripherals, _runtime: bsp::Runtime) {
-    let i2c = p.i2c1();
+async fn main(p: bsp::Peripherals, runtime: bsp::Runtime) {
+    let lm75b_shared = mk_static!(
+        embassy_stm32_temp::drivers::sensors::lm75::Shared,
+        embassy_stm32_temp::drivers::sensors::lm75::new_sensor_data()
+    );
 
-    let mut lm75 = lm75::Lm75::new_pct2075(i2c, lm75::Address::from(0x48));
-    if lm75.enable().is_err() {
-        defmt::error!("Failed to enable LM75B sensor");
-        panic!("LM75B sensor not found")
-    }
+    let (first_sensor, first_sensor_runner) =
+        embassy_stm32_temp::drivers::sensors::lm75::new(p.i2c1(), lm75b_shared);
+
+    runtime
+        .lowest()
+        .must_spawn(lm75_temp_task(first_sensor_runner));
 
     loop {
-        let temp = lm75.read_temperature();
-        match temp {
-            Ok(temp) => {
-                defmt::info!("Temperature: {}°C", temp);
-            }
-            Err(_) => {
-                defmt::error!("Failed to read temperature from LM75B sensor");
-                break;
-            }
-        }
-        Timer::after_millis(100).await;
+        let temp = first_sensor.get_temperature().await;
+        defmt::info!("lm75b: temperature is {}", temp);
+        Timer::after(first_sensor.rate()).await;
     }
 
     defmt::warn!("exit of main");
