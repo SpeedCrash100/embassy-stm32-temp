@@ -3,10 +3,13 @@
 #![feature(type_alias_impl_trait)]
 
 use cortex_m_rt::entry;
-use embassy_time::Timer;
+use embassy_time::{Duration, Timer};
 use {defmt_rtt as _, panic_probe as _}; // global logger
 
-use embassy_stm32_temp::{bsp, drivers::sensors::temperature::TemperatureSensor};
+use embassy_stm32_temp::{
+    bsp,
+    drivers::sensors::{humidity::HumiditySensor, temperature::TemperatureSensor},
+};
 
 // mod display;
 // mod i2c;
@@ -70,7 +73,11 @@ async fn main(p: bsp::Peripherals, runtime: bsp::Runtime) {
         let avg_temp = (temps[0] + temps[1]) / 2.0;
 
         defmt::info!("temp: 0={} 1={} avg={}", temps[0], temps[1], avg_temp);
-        Timer::after(second_sensor.rate()).await;
+
+        let humidity = second_sensor.get_humidity().await;
+        defmt::info!("humidity: {}", humidity);
+
+        Timer::after(Duration::from_secs(1)).await;
     }
 
     drop(p);

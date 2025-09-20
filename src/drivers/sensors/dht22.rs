@@ -2,7 +2,10 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Delay, Duration, Timer};
 use embedded_hal::delay::DelayNs;
 
-use crate::{bsp::DhtSingleWirePin, drivers::sensors::temperature::TemperatureSensor};
+use crate::{
+    bsp::DhtSingleWirePin,
+    drivers::sensors::{humidity::HumiditySensor, temperature::TemperatureSensor},
+};
 
 pub const MEASUREMENT_INTERVAL: Duration = Duration::from_millis(1000);
 
@@ -34,12 +37,14 @@ pub struct Dht22<'a> {
 }
 
 impl TemperatureSensor for Dht22<'_> {
-    fn rate(&self) -> Duration {
-        MEASUREMENT_INTERVAL
-    }
-
     async fn get_temperature(&self) -> f32 {
         *self.shared.temperature.lock().await
+    }
+}
+
+impl HumiditySensor for Dht22<'_> {
+    async fn get_humidity(&self) -> f32 {
+        *self.shared.humidity.lock().await
     }
 }
 

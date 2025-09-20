@@ -1,3 +1,4 @@
+pub mod humidity;
 pub mod temperature;
 
 pub mod dht22;

@@ -30,10 +30,6 @@ pub struct Lm75<'a> {
 }
 
 impl TemperatureSensor for Lm75<'_> {
-    fn rate(&self) -> Duration {
-        MEASUREMENT_INTERVAL
-    }
-
     async fn get_temperature(&self) -> f32 {
         *self.shared.temperature.lock().await
     }
