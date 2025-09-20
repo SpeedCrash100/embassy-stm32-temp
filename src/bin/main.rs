@@ -27,6 +27,11 @@ async fn lm75_temp_task(runner: embassy_stm32_temp::drivers::sensors::lm75::Runn
     runner.run().await;
 }
 
+#[embassy_executor::task]
+async fn dht22_temp_task(runner: embassy_stm32_temp::drivers::sensors::dht22::Runner<'static>) {
+    runner.run().await;
+}
+
 #[entry]
 fn entry() -> ! {
     // BSP prepares peripherals and runtime and runs main task in LOWEST priority
@@ -37,7 +42,7 @@ fn entry() -> ! {
 async fn main(p: bsp::Peripherals, runtime: bsp::Runtime) {
     let lm75b_shared = mk_static!(
         embassy_stm32_temp::drivers::sensors::lm75::Shared,
-        embassy_stm32_temp::drivers::sensors::lm75::new_sensor_data()
+        embassy_stm32_temp::drivers::sensors::lm75::Shared::new()
     );
 
     let (first_sensor, first_sensor_runner) =
@@ -47,13 +52,26 @@ async fn main(p: bsp::Peripherals, runtime: bsp::Runtime) {
         .lowest()
         .must_spawn(lm75_temp_task(first_sensor_runner));
 
-    loop {
-        let temp = first_sensor.get_temperature().await;
-        defmt::info!("lm75b: temperature is {}", temp);
-        Timer::after(first_sensor.rate()).await;
-    }
+    let dht22_shared = mk_static!(
+        embassy_stm32_temp::drivers::sensors::dht22::Shared,
+        embassy_stm32_temp::drivers::sensors::dht22::Shared::new()
+    );
+    let (second_sensor, second_sensor_runner) =
+        embassy_stm32_temp::drivers::sensors::dht22::new(p.dht_pin, dht22_shared);
+    runtime
+        .medium()
+        .must_spawn(dht22_temp_task(second_sensor_runner));
 
-    defmt::warn!("exit of main");
+    let mut temps: [f32; 2] = [0.0; 2];
+
+    loop {
+        temps[0] = first_sensor.get_temperature().await;
+        temps[1] = second_sensor.get_temperature().await;
+        let avg_temp = (temps[0] + temps[1]) / 2.0;
+
+        defmt::info!("temp: 0={} 1={} avg={}", temps[0], temps[1], avg_temp);
+        Timer::after(second_sensor.rate()).await;
+    }
 
     drop(p);
 }

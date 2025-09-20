@@ -3,9 +3,10 @@ mod i2c;
 mod work_indicator;
 
 use embassy_executor::{InterruptExecutor, SendSpawner, SpawnToken, Spawner};
+use embassy_stm32::gpio::{Flex, Pull};
+use embassy_stm32::interrupt;
 use embassy_stm32::{
     gpio::{Level, Output, Speed},
-    interrupt,
     interrupt::{InterruptExt as _, Priority},
     Config,
 };
@@ -16,9 +17,12 @@ use executor::Executor;
 /// Handle used to shared i2c bus
 pub use i2c::I2cShared;
 
+pub type DhtSingleWirePin = Flex<'static>;
+
 #[non_exhaustive]
 pub struct Peripherals {
     i2c1: &'static i2c::I2cProtected,
+    pub dht_pin: DhtSingleWirePin,
 }
 
 impl Peripherals {
@@ -99,7 +103,13 @@ fn init() -> Peripherals {
     let sda = p.PB9;
     let i2c1_ref = i2c::init_i2c1(i2c1, scl, sda);
 
-    Peripherals { i2c1: i2c1_ref }
+    let mut dht_pin = Flex::new(p.PA15);
+    dht_pin.set_as_input_output_pull(Speed::VeryHigh, Pull::Up);
+
+    Peripherals {
+        i2c1: i2c1_ref,
+        dht_pin,
+    }
 }
 
 pub fn entry<F, S>(main_function: F) -> !

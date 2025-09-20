@@ -16,9 +16,11 @@ pub struct Shared {
     temperature: Mutex<CriticalSectionRawMutex, f32>,
 }
 
-pub fn new_sensor_data() -> Shared {
-    Shared {
-        temperature: Mutex::new(0.0),
+impl Shared {
+    pub fn new() -> Self {
+        Self {
+            temperature: Mutex::new(0.0),
+        }
     }
 }
 
